@@ -13,20 +13,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.moviles.eventsync.ui.auth.LoginState
+import com.moviles.eventsync.ui.auth.LoginViewModel
 import com.moviles.eventsync.ui.components.EventSyncButton
 import com.moviles.eventsync.ui.components.EventSyncTextField
 import com.moviles.eventsync.ui.theme.EventSyncTheme
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit,
+    viewModel: LoginViewModel,
+    onLoginSuccess: (String) -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    
+    // Observamos el estado del ViewModel
+    val state by viewModel.state.collectAsState()
 
     Column(
         modifier = Modifier
@@ -35,7 +40,6 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Logo o Título
         Text(
             text = "EventSync",
             fontSize = 40.sp,
@@ -50,9 +54,6 @@ fun LoginScreen(
             modifier = Modifier.padding(bottom = 32.dp)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Campos de entrada
         EventSyncTextField(
             value = email,
             onValueChange = { email = it },
@@ -70,17 +71,34 @@ fun LoginScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Botón de Inicio de Sesión
-        EventSyncButton(
-            text = "Iniciar Sesión",
-            onClick = { onLoginSuccess() }
-        )
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Opción de registro
+        // Manejo de estados de la UI
+        when (state) {
+            is LoginState.Loading -> CircularProgressIndicator()
+            is LoginState.Error -> {
+                Text(
+                    text = (state as LoginState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            is LoginState.Success -> {
+                LaunchedEffect(Unit) {
+                    onLoginSuccess((state as LoginState.Success).token)
+                }
+            }
+            else -> {}
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        EventSyncButton(
+            text = "Iniciar Sesión",
+            onClick = { viewModel.login(email, password) },
+            enabled = state !is LoginState.Loading
+        )
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
@@ -94,22 +112,6 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    EventSyncTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            LoginScreen(
-                onLoginSuccess = {},
-                onNavigateToRegister = {}
-            )
         }
     }
 }

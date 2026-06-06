@@ -13,21 +13,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.moviles.eventsync.ui.auth.RegisterState
+import com.moviles.eventsync.ui.auth.RegisterViewModel
 import com.moviles.eventsync.ui.components.EventSyncButton
 import com.moviles.eventsync.ui.components.EventSyncTextField
-import com.moviles.eventsync.ui.theme.EventSyncTheme
 
 @Composable
 fun RegisterScreen(
+    viewModel: RegisterViewModel,
     onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    val state by viewModel.state.collectAsState()
 
     Column(
         modifier = Modifier
@@ -73,31 +76,36 @@ fun RegisterScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Manejo de estados de la UI (Loading, Error, Success)
+        when (state) {
+            is RegisterState.Loading -> CircularProgressIndicator()
+            is RegisterState.Error -> {
+                Text(
+                    text = (state as RegisterState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            is RegisterState.Success -> {
+                LaunchedEffect(Unit) {
+                    onRegisterSuccess()
+                }
+            }
+            else -> {}
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         EventSyncButton(
             text = "Registrarse",
-            onClick = onRegisterSuccess
+            onClick = { viewModel.register(name, email, password) },
+            enabled = state !is RegisterState.Loading
         )
 
         TextButton(onClick = onNavigateToLogin) {
             Text("¿Ya tienes cuenta? Inicia sesión")
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RegisterScreenPreview() {
-    EventSyncTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            RegisterScreen(
-                onRegisterSuccess = {},
-                onNavigateToLogin = {}
-            )
         }
     }
 }

@@ -3,25 +3,27 @@ package com.moviles.eventsync.data.network
 import com.google.gson.annotations.SerializedName
 
 data class LoginRequest(
-    val email: String,
-    val password: String
+    @SerializedName("email") val email: String,
+    @SerializedName("password") val password: String
 )
 
 data class LoginResponse(
-    val token: String,
-    val message: String? = null
+    @SerializedName("token") val token: String?,
+    @SerializedName("message") val message: String? = null
 )
 
 data class RegisterRequest(
-    val name: String,
-    val email: String,
-    val password: String
+    @SerializedName("fullName") val name: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("password") val password: String
 )
 
 data class EventResponse(
-    val id: Int,
-    val title: String,
-    val description: String,
-    val date: String,
-    val location: String
+    @SerializedName("id") val id: Int,
+    @SerializedName("title") val title: String,
+    @SerializedName("description") val description: String,
+    @SerializedName("date") val date: String,
+    @SerializedName("maxCapacity") val maxCapacity: Int,
+    @SerializedName("availableSpots") val availableSpots: Int,
+    @SerializedName("imagePath") val imagePath: String? = null
 )

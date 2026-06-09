@@ -30,7 +30,11 @@ class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
             _state.value = LoginState.Loading
             val result = repository.login(LoginRequest(email, password))
             result.onSuccess { response ->
-                _state.value = LoginState.Success(response.token)
+                if (response.token != null) {
+                    _state.value = LoginState.Success(response.token)
+                } else {
+                    _state.value = LoginState.Error("Inicio exitoso pero no se recibió el token de acceso")
+                }
             }.onFailure { error ->
                 _state.value = LoginState.Error(error.message ?: "Error en la conexión")
             }

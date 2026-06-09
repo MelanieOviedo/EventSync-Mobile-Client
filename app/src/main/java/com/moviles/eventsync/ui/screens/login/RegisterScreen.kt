@@ -15,10 +15,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
+import com.moviles.eventsync.data.network.RetrofitClient
+import com.moviles.eventsync.data.repository.AuthRepository
 import com.moviles.eventsync.ui.auth.RegisterState
 import com.moviles.eventsync.ui.auth.RegisterViewModel
 import com.moviles.eventsync.ui.components.EventSyncButton
 import com.moviles.eventsync.ui.components.EventSyncTextField
+import com.moviles.eventsync.ui.theme.EventSyncTheme
 
 @Composable
 fun RegisterScreen(
@@ -78,7 +82,6 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Manejo de estados de la UI (Loading, Error, Success)
         when (state) {
             is RegisterState.Loading -> CircularProgressIndicator()
             is RegisterState.Error -> {
@@ -107,5 +110,19 @@ fun RegisterScreen(
         TextButton(onClick = onNavigateToLogin) {
             Text("¿Ya tienes cuenta? Inicia sesión")
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RegisterScreenPreview() {
+    val authRepository = AuthRepository(RetrofitClient.apiService)
+    val viewModel = RegisterViewModel(authRepository)
+    EventSyncTheme {
+        RegisterScreen(
+            viewModel = viewModel,
+            onRegisterSuccess = {},
+            onNavigateToLogin = {}
+        )
     }
 }

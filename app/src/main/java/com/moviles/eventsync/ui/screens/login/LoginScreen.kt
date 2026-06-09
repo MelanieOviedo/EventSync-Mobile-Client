@@ -15,6 +15,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moviles.eventsync.data.network.RetrofitClient
+import com.moviles.eventsync.data.repository.AuthRepository
 import com.moviles.eventsync.ui.auth.LoginState
 import com.moviles.eventsync.ui.auth.LoginViewModel
 import com.moviles.eventsync.ui.components.EventSyncButton
@@ -29,8 +33,7 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    
-    // Observamos el estado del ViewModel
+
     val state by viewModel.state.collectAsState()
 
     Column(
@@ -73,19 +76,18 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Manejo de estados de la UI
-        when (state) {
+        when (val currentState = state) {
             is LoginState.Loading -> CircularProgressIndicator()
             is LoginState.Error -> {
                 Text(
-                    text = (state as LoginState.Error).message,
+                    text = currentState.message,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
             is LoginState.Success -> {
-                LaunchedEffect(Unit) {
-                    onLoginSuccess((state as LoginState.Success).token)
+                LaunchedEffect(currentState.token) {
+                    onLoginSuccess(currentState.token)
                 }
             }
             else -> {}
@@ -113,5 +115,26 @@ fun LoginScreen(
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoginScreenPreview() {
+    val authRepository = AuthRepository(RetrofitClient.apiService)
+    val viewModel: LoginViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return LoginViewModel(authRepository) as T
+            }
+        }
+    )
+    EventSyncTheme {
+        LoginScreen(
+            viewModel = viewModel,
+            onLoginSuccess = {},
+            onNavigateToRegister = {}
+        )
     }
 }

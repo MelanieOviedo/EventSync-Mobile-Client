@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.moviles.eventsync.R
+import androidx.compose.ui.platform.LocalContext
+import com.moviles.eventsync.data.TokenManager
 import com.moviles.eventsync.data.network.RetrofitClient
 import com.moviles.eventsync.data.repository.AuthRepository
 import com.moviles.eventsync.ui.auth.LoginState
@@ -122,12 +124,14 @@ fun LoginScreen(
 @Preview(showBackground = true)
 @Composable
 fun LoginScreenPreview() {
-    val authRepository = AuthRepository(RetrofitClient.apiService)
+    val context = LocalContext.current
+    val tokenManager = TokenManager(context)
+    val authRepository = AuthRepository(RetrofitClient.getApiService(tokenManager))
     val viewModel: LoginViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return LoginViewModel(authRepository) as T
+                return LoginViewModel(authRepository, tokenManager) as T
             }
         }
     )

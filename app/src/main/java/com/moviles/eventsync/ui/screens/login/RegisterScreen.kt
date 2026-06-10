@@ -16,6 +16,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moviles.eventsync.data.TokenManager
 import com.moviles.eventsync.data.network.RetrofitClient
 import com.moviles.eventsync.data.repository.AuthRepository
 import com.moviles.eventsync.ui.auth.RegisterState
@@ -116,8 +119,17 @@ fun RegisterScreen(
 @Preview(showBackground = true)
 @Composable
 fun RegisterScreenPreview() {
-    val authRepository = AuthRepository(RetrofitClient.apiService)
-    val viewModel = RegisterViewModel(authRepository)
+    val context = LocalContext.current
+    val tokenManager = TokenManager(context)
+    val authRepository = AuthRepository(RetrofitClient.getApiService(tokenManager))
+    val viewModel: RegisterViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return RegisterViewModel(authRepository, tokenManager) as T
+            }
+        }
+    )
     EventSyncTheme {
         RegisterScreen(
             viewModel = viewModel,

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.moviles.eventsync.core.AppConstants
+import com.moviles.eventsync.core.utils.DateTimeUtils
 import com.moviles.eventsync.data.network.EventResponse
 import com.moviles.eventsync.ui.theme.EventSyncTheme
 
@@ -87,7 +88,7 @@ fun EventCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = event.date,
+                            text = DateTimeUtils.formatEventDate(event.date),
                             fontSize = 12.sp,
                             color = Color.Gray
                         )

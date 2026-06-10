@@ -27,3 +27,20 @@ data class EventResponse(
     @SerializedName("availableSpots") val availableSpots: Int,
     @SerializedName("imagePath") val imagePath: String? = null
 )
+
+data class ReservationRequest(
+    @SerializedName("eventId") val eventId: Int
+)
+
+data class ReservationResponse(
+    @SerializedName("message") val message: String
+)
+
+data class BookingResponse(
+    @SerializedName("id") val id: Int,
+    @SerializedName("eventId") val eventId: Int,
+    @SerializedName("eventTitle") val eventTitle: String,
+    @SerializedName("eventDate") val eventDate: String,
+    @SerializedName("bookingDate") val bookingDate: String,
+    @SerializedName("status") val status: String
+)

@@ -6,4 +6,5 @@ object AppConstants {
     const val LOGIN_PATH = "api/auth/login"
     const val REGISTER_PATH = "api/auth/register"
     const val EVENTS_PATH = "api/events"
+    const val BOOKINGS_PATH = "api/bookings"
 }

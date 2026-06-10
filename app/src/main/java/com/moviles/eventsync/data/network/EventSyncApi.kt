@@ -19,4 +19,10 @@ interface EventSyncApi {
 
     @GET("${AppConstants.EVENTS_PATH}/{id}")
     suspend fun getEventById(@retrofit2.http.Path("id") id: Int): Response<EventResponse>
+
+    @POST(AppConstants.BOOKINGS_PATH)
+    suspend fun makeReservation(@Body request: ReservationRequest): Response<ReservationResponse>
+
+    @GET(AppConstants.BOOKINGS_PATH)
+    suspend fun getMyBookings(): Response<List<BookingResponse>>
 }

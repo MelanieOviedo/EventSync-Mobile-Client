@@ -2,6 +2,7 @@ package com.moviles.eventsync.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.moviles.eventsync.data.TokenManager
 import com.moviles.eventsync.data.network.LoginRequest
 import com.moviles.eventsync.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,10 @@ sealed class LoginState {
     data class Error(val message: String) : LoginState()
 }
 
-class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
+class LoginViewModel(
+    private val repository: AuthRepository,
+    private val tokenManager: TokenManager
+) : ViewModel() {
 
     private val _state = MutableStateFlow<LoginState>(LoginState.Idle)
     val state: StateFlow<LoginState> = _state
@@ -31,6 +35,7 @@ class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
             val result = repository.login(LoginRequest(email, password))
             result.onSuccess { response ->
                 if (response.token != null) {
+                    tokenManager.saveToken(response.token)
                     _state.value = LoginState.Success(response.token)
                 } else {
                     _state.value = LoginState.Error("Inicio exitoso pero no se recibió el token de acceso")

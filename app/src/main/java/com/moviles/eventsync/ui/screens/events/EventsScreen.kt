@@ -3,9 +3,8 @@ package com.moviles.eventsync.ui.screens.events
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -16,6 +15,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
+import com.moviles.eventsync.data.TokenManager
 import com.moviles.eventsync.data.network.RetrofitClient
 import com.moviles.eventsync.data.repository.EventsRepository
 import com.moviles.eventsync.ui.components.EventCard
@@ -24,7 +25,9 @@ import com.moviles.eventsync.ui.theme.EventSyncTheme
 @Composable
 fun EventsScreen(
     viewModel: EventsViewModel,
-    onEventClick: (Int) -> Unit
+    onEventClick: (Int) -> Unit,
+    successMessage: String? = null,
+    onDismissMessage: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -34,6 +37,35 @@ fun EventsScreen(
             .padding(horizontal = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(24.dp))
+
+        if (successMessage != null) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(12.dp),
+                tonalElevation = 4.dp
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = successMessage,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.weight(1f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    TextButton(onClick = onDismissMessage) {
+                        Text("Cerrar", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        }
+
         Text(
             text = "Explorar Eventos",
             fontSize = 28.sp,
@@ -46,7 +78,6 @@ fun EventsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-
 
         when (val currentState = state) {
             is EventsState.Loading -> {
@@ -89,7 +120,9 @@ fun EventsScreen(
 @Preview(showBackground = true)
 @Composable
 fun EventsScreenPreview() {
-    val repository = EventsRepository(RetrofitClient.apiService)
+    val context = LocalContext.current
+    val tokenManager = TokenManager(context)
+    val repository = EventsRepository(RetrofitClient.getApiService(tokenManager))
     val viewModel: EventsViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {

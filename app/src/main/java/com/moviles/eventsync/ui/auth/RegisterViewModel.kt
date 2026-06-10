@@ -2,6 +2,7 @@ package com.moviles.eventsync.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.moviles.eventsync.data.TokenManager
 import com.moviles.eventsync.data.network.RegisterRequest
 import com.moviles.eventsync.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,10 @@ sealed class RegisterState {
     data class Error(val message: String) : RegisterState()
 }
 
-class RegisterViewModel(private val repository: AuthRepository) : ViewModel() {
+class RegisterViewModel(
+    private val repository: AuthRepository,
+    private val tokenManager: TokenManager
+) : ViewModel() {
 
     private val _state = MutableStateFlow<RegisterState>(RegisterState.Idle)
     val state: StateFlow<RegisterState> = _state
@@ -29,7 +33,10 @@ class RegisterViewModel(private val repository: AuthRepository) : ViewModel() {
         viewModelScope.launch {
             _state.value = RegisterState.Loading
             val result = repository.register(RegisterRequest(name, email, password))
-            result.onSuccess {
+            result.onSuccess { response ->
+                if (response.token != null) {
+                    tokenManager.saveToken(response.token)
+                }
                 _state.value = RegisterState.Success
             }.onFailure { error ->
                 _state.value = RegisterState.Error(error.message ?: "Error en el registro")

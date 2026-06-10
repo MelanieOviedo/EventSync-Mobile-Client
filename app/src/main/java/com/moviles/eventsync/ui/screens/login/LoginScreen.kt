@@ -1,5 +1,6 @@
 package com.moviles.eventsync.ui.screens.login
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -10,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -17,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moviles.eventsync.R
 import com.moviles.eventsync.data.network.RetrofitClient
 import com.moviles.eventsync.data.repository.AuthRepository
 import com.moviles.eventsync.ui.auth.LoginState
@@ -43,19 +46,17 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "EventSync",
-            fontSize = 40.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary
+        // --- LOGO DE LA APP ---
+        Image(
+            painter = painterResource(id = R.drawable.logo_inicio),
+            contentDescription = "Logo de EventSync",
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp) // Aumentamos el tamaño para que se lea el eslogan del logo
+                .padding(bottom = 16.dp)
         )
-        
-        Text(
-            text = "Reserva tu lugar en los mejores eventos",
-            fontSize = 14.sp,
-            color = Color.Gray,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
+
+        // Eliminamos los Text() de "EventSync" porque ya vienen dentro de la imagen logo_inicio.png
 
         EventSyncTextField(
             value = email,

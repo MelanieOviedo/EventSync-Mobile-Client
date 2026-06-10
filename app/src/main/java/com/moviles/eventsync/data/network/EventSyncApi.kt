@@ -16,4 +16,7 @@ interface EventSyncApi {
 
     @GET(AppConstants.EVENTS_PATH)
     suspend fun getEvents(): Response<List<EventResponse>>
+
+    @GET("${AppConstants.EVENTS_PATH}/{id}")
+    suspend fun getEventById(@retrofit2.http.Path("id") id: Int): Response<EventResponse>
 }

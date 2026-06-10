@@ -17,6 +17,11 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object Reservations : Screen("reservations", "Mis Reservas", Icons.Default.History)
     object Notifications : Screen("notifications", "Notificaciones", Icons.Default.Notifications)
     object Profile : Screen("profile", "Perfil", Icons.Default.Person)
+    
+    // Details
+    object EventDetail : Screen("event_detail/{eventId}", "Detalle de Evento") {
+        fun createRoute(eventId: Int) = "event_detail/$eventId"
+    }
 }
 
 val bottomNavItems = listOf(

@@ -21,4 +21,19 @@ class EventsRepository(private val api: EventSyncApi) {
             }
         }
     }
+
+    suspend fun getEventById(id: Int): Result<EventResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = api.getEventById(id)
+                if (response.isSuccessful && response.body() != null) {
+                    Result.success(response.body()!!)
+                } else {
+                    Result.failure(Exception("Error al obtener detalle del evento: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
 }

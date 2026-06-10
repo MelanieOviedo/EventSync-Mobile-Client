@@ -23,7 +23,8 @@ import com.moviles.eventsync.ui.theme.EventSyncTheme
 
 @Composable
 fun EventsScreen(
-    viewModel: EventsViewModel
+    viewModel: EventsViewModel,
+    onEventClick: (Int) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -75,7 +76,7 @@ fun EventsScreen(
                         items(currentState.events) { event ->
                             EventCard(
                                 event = event,
-                                onClick = { /* TODO: Navegar al detalle */ }
+                                onClick = { onEventClick(event.id) }
                             )
                         }
                     }
@@ -98,6 +99,9 @@ fun EventsScreenPreview() {
         }
     )
     EventSyncTheme {
-        EventsScreen(viewModel = viewModel)
+        EventsScreen(
+            viewModel = viewModel,
+            onEventClick = {}
+        )
     }
 }

@@ -19,8 +19,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object Profile : Screen("profile", "Perfil", Icons.Default.Person)
     
     // Details
-    object EventDetail : Screen("event_detail/{eventId}", "Detalle de Evento") {
-        fun createRoute(eventId: Int) = "event_detail/$eventId"
+    object EventDetail : Screen("event_detail/{eventId}?isReserved={isReserved}", "Detalle de Evento") {
+        fun createRoute(eventId: Int, isReserved: Boolean = false) = "event_detail/$eventId?isReserved=$isReserved"
     }
 }
 

@@ -26,6 +26,7 @@ import com.moviles.eventsync.ui.components.EventSyncButton
 @Composable
 fun EventDetailScreen(
     eventId: Int,
+    initialIsReserved: Boolean = false,
     viewModel: EventDetailViewModel,
     onBack: () -> Unit,
     onReservationSuccess: (String) -> Unit
@@ -34,20 +35,52 @@ fun EventDetailScreen(
     val reservationState by viewModel.reservationState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Estado local para manejar la visibilidad del botón
+    var localIsReserved by remember(initialIsReserved) { mutableStateOf(initialIsReserved) }
+    var wasCancelled by remember { mutableStateOf(false) }
+
     LaunchedEffect(eventId) {
         viewModel.getEventById(eventId)
     }
 
-    // Manejar el resultado de la reserva
+    // Sincronizar con el servidor: el servidor es la fuente de verdad absoluta
+    LaunchedEffect(state) {
+        if (state is EventDetailState.Success) {
+            val event = (state as EventDetailState.Success).event
+            // Si el servidor confirma que NO está reservado, actualizamos el estado local
+            if (!event.isReserved) {
+                localIsReserved = false
+            } else {
+                localIsReserved = true
+            }
+        }
+    }
+
+    // Manejar el resultado de la reserva o cancelación
     LaunchedEffect(reservationState) {
         when (val res = reservationState) {
             is ReservationState.Success -> {
+                snackbarHostState.showSnackbar(res.message)
+                
+                if (localIsReserved) {
+                    // Si estaba reservado y la operación fue exitosa, fue una cancelación
+                    wasCancelled = true
+                    localIsReserved = false
+                } else {
+                    localIsReserved = true
+                    wasCancelled = false
+                }
+                
                 viewModel.resetReservationState()
-                onReservationSuccess(res.message)
-                onBack() // Cerrar la vista de detalles
             }
             is ReservationState.Error -> {
                 snackbarHostState.showSnackbar(res.message)
+                // Si el error indica que no hay reserva activa (404), ocultamos el botón
+                if (res.message.contains("No se encontró", ignoreCase = true) || 
+                    res.message.contains("404", ignoreCase = true)) {
+                    localIsReserved = false
+                    wasCancelled = true // Lo marcamos como cancelado para ocultar botones
+                }
                 viewModel.resetReservationState()
             }
             else -> {}
@@ -147,12 +180,49 @@ fun EventDetailScreen(
 
                             Spacer(modifier = Modifier.height(32.dp))
 
-                            EventSyncButton(
-                                text = "Reservar mi lugar",
-                                onClick = { viewModel.makeReservation(event.id) },
-                                enabled = event.availableSpots > 0,
-                                isLoading = reservationState is ReservationState.Loading
-                            )
+                            // Lógica para mostrar/ocultar botones
+                            if (wasCancelled) {
+                                // NO se muestra ningún botón, solo la tarjeta de confirmación
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = "Tu reserva para este evento ha sido cancelada.",
+                                        modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally),
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            } else if (localIsReserved) {
+                                OutlinedButton(
+                                    onClick = { viewModel.cancelReservation(event.id) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                                    enabled = reservationState !is ReservationState.Loading
+                                ) {
+                                    if (reservationState is ReservationState.Loading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.error)
+                                    } else {
+                                        Text("Cancelar mi reserva", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            } else {
+                                // Solo se muestra el botón de reservar si no hay reserva previa ni cancelación reciente
+                                EventSyncButton(
+                                    text = "Reservar mi lugar",
+                                    onClick = { viewModel.makeReservation(event.id) },
+                                    enabled = event.availableSpots > 0,
+                                    isLoading = reservationState is ReservationState.Loading
+                                )
+                            }
                         }
                     }
                 }

@@ -4,10 +4,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,12 +29,18 @@ import com.moviles.eventsync.core.utils.DateTimeUtils
 import com.moviles.eventsync.data.network.BookingResponse
 import com.moviles.eventsync.ui.theme.EventSyncTheme
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ReservationsScreen(
     viewModel: ReservationsViewModel,
     onBookingClick: (Int) -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = { viewModel.refreshBookings() }
+    )
 
     LaunchedEffect(Unit) {
         viewModel.loadBookings()
@@ -56,65 +66,81 @@ fun ReservationsScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        when (val currentState = state) {
-            is BookingsState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            is BookingsState.Error -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Error: ${currentState.message}",
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        Button(onClick = { viewModel.loadBookings() }) {
-                            Text("Reintentar")
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pullRefresh(pullRefreshState)
+        ) {
+            when (val currentState = state) {
+                is BookingsState.Loading -> {
+                    if (!isRefreshing) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
                     }
                 }
-            }
-            is BookingsState.Success -> {
-                if (currentState.bookings.isEmpty()) {
+                is BookingsState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.ConfirmationNumber,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.outline
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Aún no tienes reservas",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.outline
+                                text = "Error: ${currentState.message}",
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(bottom = 8.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            TextButton(onClick = { viewModel.loadBookings() }) {
-                                Text("Actualizar")
+                            Button(onClick = { viewModel.loadBookings() }) {
+                                Text("Reintentar")
                             }
                         }
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(currentState.bookings) { booking ->
-                            BookingCard(
-                                booking = booking,
-                                onClick = { onBookingClick(booking.eventId) }
-                            )
+                }
+                is BookingsState.Success -> {
+                    if (currentState.bookings.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.ConfirmationNumber,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Aún no tienes reservas",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                TextButton(onClick = { viewModel.loadBookings() }) {
+                                    Text("Actualizar")
+                                }
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(currentState.bookings) { booking ->
+                                BookingCard(
+                                    booking = booking,
+                                    onClick = { onBookingClick(booking.eventId) }
+                                )
+                            }
                         }
                     }
                 }
+                else -> {}
             }
-            else -> {}
+            
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
@@ -195,9 +221,16 @@ fun BookingCard(
 
 @Composable
 fun StatusBadge(status: String) {
+    val displayStatus = when(status.lowercase()) {
+        "active", "confirmado", "confirmed" -> "ACTIVA"
+        "cancelled", "cancelado" -> "CANCELADA"
+        "pendiente", "pending" -> "PENDIENTE"
+        else -> status.uppercase()
+    }
+
     val (backgroundColor, contentColor) = when(status.lowercase()) {
-        "confirmado", "confirmed" -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
-        "cancelado", "cancelled" -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.error
+        "active", "confirmado", "confirmed" -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
+        "cancelled", "cancelado" -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.error
         "pendiente", "pending" -> Color(0xFFFFF3E0) to Color(0xFFE65100)
         else -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
     }
@@ -207,7 +240,7 @@ fun StatusBadge(status: String) {
         shape = RoundedCornerShape(8.dp)
     ) {
         Text(
-            text = status.uppercase(),
+            text = displayStatus,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             fontSize = 10.sp,
             fontWeight = FontWeight.Black,

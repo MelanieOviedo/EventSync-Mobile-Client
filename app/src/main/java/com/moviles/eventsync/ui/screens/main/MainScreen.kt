@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.moviles.eventsync.data.TokenManager
 import com.moviles.eventsync.data.network.RetrofitClient
 import com.moviles.eventsync.data.repository.EventsRepository
+import com.moviles.eventsync.data.repository.NotificationsRepository
 import com.moviles.eventsync.navigation.Screen
 import com.moviles.eventsync.ui.components.EventSyncBottomBar
 import com.moviles.eventsync.ui.screens.details.EventDetailScreen
@@ -24,7 +25,10 @@ import com.moviles.eventsync.ui.screens.details.EventDetailViewModel
 import com.moviles.eventsync.ui.screens.events.EventsScreen
 import com.moviles.eventsync.ui.screens.events.EventsViewModel
 import com.moviles.eventsync.ui.screens.notifications.NotificationsScreen
+import com.moviles.eventsync.ui.screens.notifications.NotificationsViewModel
+import com.moviles.eventsync.data.repository.AuthRepository
 import com.moviles.eventsync.ui.screens.profile.ProfileScreen
+import com.moviles.eventsync.ui.screens.profile.ProfileViewModel
 import com.moviles.eventsync.ui.screens.reservations.ReservationsScreen
 import com.moviles.eventsync.ui.screens.reservations.ReservationsViewModel
 import com.moviles.eventsync.ui.theme.EventSyncTheme
@@ -86,9 +90,14 @@ fun MainScreen(onLogout: () -> Unit) {
 
             composable(
                 route = Screen.EventDetail.route,
-                arguments = listOf(navArgument("eventId") { type = NavType.IntType })
+                arguments = listOf(
+                    navArgument("eventId") { type = NavType.IntType },
+                    navArgument("isReserved") { type = NavType.BoolType; defaultValue = false }
+                )
             ) { backStackEntry ->
                 val eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable
+                val isReserved = backStackEntry.arguments?.getBoolean("isReserved") ?: false
+                
                 val repository = EventsRepository(RetrofitClient.getApiService(tokenManager))
                 val viewModel: EventDetailViewModel = viewModel(
                     factory = object : androidx.lifecycle.ViewModelProvider.Factory {
@@ -100,6 +109,7 @@ fun MainScreen(onLogout: () -> Unit) {
                 )
                 EventDetailScreen(
                     eventId = eventId,
+                    initialIsReserved = isReserved,
                     viewModel = viewModel,
                     onBack = { navController.popBackStack() },
                     onReservationSuccess = { message ->
@@ -120,19 +130,40 @@ fun MainScreen(onLogout: () -> Unit) {
                 ReservationsScreen(
                     viewModel = viewModel,
                     onBookingClick = { eventId ->
-                        navController.navigate(Screen.EventDetail.createRoute(eventId))
+                        navController.navigate(Screen.EventDetail.createRoute(eventId, isReserved = true))
                     }
                 )
             }
-            composable(Screen.Notifications.route) { NotificationsScreen() }
+            composable(Screen.Notifications.route) {
+                val repository = NotificationsRepository(RetrofitClient.getApiService(tokenManager))
+                val viewModel: NotificationsViewModel = viewModel(
+                    factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                            @Suppress("UNCHECKED_CAST")
+                            return NotificationsViewModel(repository) as T
+                        }
+                    }
+                )
+                NotificationsScreen(viewModel = viewModel)
+            }
             composable(Screen.Profile.route) { 
+                val repository = AuthRepository(RetrofitClient.getApiService(tokenManager))
+                val profileViewModel: ProfileViewModel = viewModel(
+                    factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                            @Suppress("UNCHECKED_CAST")
+                            return ProfileViewModel(repository) as T
+                        }
+                    }
+                )
                 ProfileScreen(
                     onLogout = {
                         scope.launch {
                             tokenManager.deleteToken()
                             onLogout()
                         }
-                    }
+                    },
+                    viewModel = profileViewModel
                 ) 
             }
         }

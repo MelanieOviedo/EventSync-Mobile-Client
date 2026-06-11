@@ -58,6 +58,20 @@ class EventDetailViewModel(private val repository: EventsRepository) : ViewModel
         }
     }
 
+    fun cancelReservation(eventId: Int) {
+        viewModelScope.launch {
+            _reservationState.value = ReservationState.Loading
+            repository.cancelReservation(eventId)
+                .onSuccess { response ->
+                    _reservationState.value = ReservationState.Success(response.message)
+                    getEventById(eventId)
+                }
+                .onFailure { error ->
+                    _reservationState.value = ReservationState.Error(error.message ?: "Error al cancelar la reserva")
+                }
+        }
+    }
+
     fun resetReservationState() {
         _reservationState.value = ReservationState.Idle
     }

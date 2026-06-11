@@ -20,6 +20,9 @@ class ReservationsViewModel(private val repository: EventsRepository) : ViewMode
     private val _uiState = MutableStateFlow<BookingsState>(BookingsState.Idle)
     val uiState: StateFlow<BookingsState> = _uiState
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
     fun loadBookings() {
         viewModelScope.launch {
             _uiState.value = BookingsState.Loading
@@ -29,6 +32,19 @@ class ReservationsViewModel(private val repository: EventsRepository) : ViewMode
             }.onFailure { exception ->
                 _uiState.value = BookingsState.Error(exception.message ?: "Error desconocido")
             }
+        }
+    }
+
+    fun refreshBookings() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            val result = repository.getMyBookings()
+            result.onSuccess { bookings ->
+                _uiState.value = BookingsState.Success(bookings)
+            }.onFailure { exception ->
+                _uiState.value = BookingsState.Error(exception.message ?: "Error desconocido")
+            }
+            _isRefreshing.value = false
         }
     }
 }

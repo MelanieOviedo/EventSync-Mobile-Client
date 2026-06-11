@@ -69,4 +69,28 @@ class EventsRepository(private val api: EventSyncApi) {
             }
         }
     }
+
+    suspend fun cancelReservation(eventId: Int): Result<ReservationResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = api.cancelReservation(eventId)
+                if (response.isSuccessful) {
+                    val body = response.body() ?: ReservationResponse("Reserva cancelada exitosamente")
+                    Result.success(body)
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    // Intentar extraer el mensaje del JSON {"message": "..."}
+                    val errorMsg = try {
+                        val json = com.google.gson.JsonParser.parseString(errorBody)
+                        json.asJsonObject.get("message").asString
+                    } catch (e: Exception) {
+                        errorBody ?: response.message()
+                    }
+                    Result.failure(Exception(errorMsg))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
 }

@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.moviles.eventsync.data.TokenManager
 import com.moviles.eventsync.data.network.LoginRequest
 import com.moviles.eventsync.data.repository.AuthRepository
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 sealed class LoginState {
     object Idle : LoginState()
@@ -36,6 +38,16 @@ class LoginViewModel(
             result.onSuccess { response ->
                 if (response.token != null) {
                     tokenManager.saveToken(response.token)
+                    
+                    // Obtener y enviar el token de FCM
+                    try {
+                        val fcmToken = FirebaseMessaging.getInstance().token.await()
+                        repository.updateFcmToken(fcmToken)
+                    } catch (e: Exception) {
+                        // Si falla el envío del token FCM, registramos el error pero permitimos el login
+                        e.printStackTrace()
+                    }
+
                     _state.value = LoginState.Success(response.token)
                 } else {
                     _state.value = LoginState.Error("Inicio exitoso pero no se recibió el token de acceso")

@@ -19,6 +19,9 @@ class EventsViewModel(private val repository: EventsRepository) : ViewModel() {
     private val _state = MutableStateFlow<EventsState>(EventsState.Loading)
     val state: StateFlow<EventsState> = _state
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
     init {
         fetchEvents()
     }
@@ -32,6 +35,21 @@ class EventsViewModel(private val repository: EventsRepository) : ViewModel() {
             }.onFailure { error ->
                 _state.value = EventsState.Error(error.message ?: "Error desconocido")
             }
+        }
+    }
+
+    fun refreshEvents() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            val result = repository.getEvents()
+            result.onSuccess { events ->
+                _state.value = EventsState.Success(events)
+            }.onFailure { error ->
+                // Opcionalmente podemos mantener el estado previo si hay error en el refresh
+                // o mostrar un error. Por ahora seguimos el patrón de fetchEvents.
+                _state.value = EventsState.Error(error.message ?: "Error desconocido")
+            }
+            _isRefreshing.value = false
         }
     }
 }

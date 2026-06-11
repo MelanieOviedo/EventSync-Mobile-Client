@@ -4,6 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -22,6 +26,7 @@ import com.moviles.eventsync.data.repository.EventsRepository
 import com.moviles.eventsync.ui.components.EventCard
 import com.moviles.eventsync.ui.theme.EventSyncTheme
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun EventsScreen(
     viewModel: EventsViewModel,
@@ -30,6 +35,11 @@ fun EventsScreen(
     onDismissMessage: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = { viewModel.refreshEvents() }
+    )
 
     Column(
         modifier = Modifier
@@ -79,40 +89,56 @@ fun EventsScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        when (val currentState = state) {
-            is EventsState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            is EventsState.Error -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "Error: ${currentState.message}",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-            is EventsState.Success -> {
-                if (currentState.events.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "No hay eventos disponibles.")
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pullRefresh(pullRefreshState)
+        ) {
+            when (val currentState = state) {
+                is EventsState.Loading -> {
+                    if (!isRefreshing) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(currentState.events) { event ->
-                            EventCard(
-                                event = event,
-                                onClick = { onEventClick(event.id) }
-                            )
+                }
+                is EventsState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "Error: ${currentState.message}",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+                is EventsState.Success -> {
+                    if (currentState.events.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(text = "No hay eventos disponibles.")
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(currentState.events) { event ->
+                                EventCard(
+                                    event = event,
+                                    onClick = { onEventClick(event.id) }
+                                )
+                            }
                         }
                     }
                 }
             }
+            
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

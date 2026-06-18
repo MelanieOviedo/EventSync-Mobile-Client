@@ -1,5 +1,6 @@
 package com.moviles.eventsync.data.repository
 
+import com.moviles.eventsync.data.network.ChangePasswordRequest
 import com.moviles.eventsync.data.network.EventSyncApi
 import com.moviles.eventsync.data.network.FcmTokenRequest
 import com.moviles.eventsync.data.network.LoginRequest
@@ -47,19 +48,6 @@ class AuthRepository(private val api: EventSyncApi) {
         }
     }
 
-    suspend fun uploadProfileImage(imagePart: okhttp3.MultipartBody.Part): Result<Unit> {
-        return try {
-            val response = api.uploadProfileImage(imagePart)
-            if (response.isSuccessful) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("Error al subir la imagen de perfil"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
     suspend fun getUserProfile(): Result<com.moviles.eventsync.data.network.UserProfileResponse> {
         return try {
             val response = api.getUserProfile()
@@ -75,15 +63,21 @@ class AuthRepository(private val api: EventSyncApi) {
 
     suspend fun changePassword(current: String, new: String): Result<Unit> {
         return try {
-            val response = api.changePassword(com.moviles.eventsync.data.network.ChangePasswordRequest(current, new))
+            val response = api.changePassword(ChangePasswordRequest(current, new))
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
-                val errorMsg = if (response.code() == 400) "La contraseña actual es incorrecta" else "Error al cambiar la contraseña"
+                val errorMsg = when (response.code()) {
+                    400 -> "La contraseña actual es incorrecta"
+                    401 -> "Sesión expirada. Por favor, inicia sesión de nuevo"
+                    403 -> "No tienes permiso para realizar esta acción"
+                    404 -> "Usuario no encontrado"
+                    else -> "Error del servidor (${response.code()}): ${response.message()}"
+                }
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("Error de conexión: ${e.message}"))
         }
     }
 }

@@ -60,7 +60,7 @@ data class NotificationResponse(
 
 data class UserProfileResponse(
     @SerializedName("id") val id: Int,
-    @SerializedName("fullName") val fullName: String,
+    @SerializedName("name") val fullName: String,
     @SerializedName("email") val email: String,
     @SerializedName("role") val role: String
 )

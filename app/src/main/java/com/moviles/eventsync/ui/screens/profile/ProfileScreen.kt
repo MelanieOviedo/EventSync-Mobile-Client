@@ -1,28 +1,49 @@
 package com.moviles.eventsync.ui.screens.profile
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -34,45 +55,43 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     viewModel: ProfileViewModel
 ) {
-    val context = LocalContext.current
-    val imageState by viewModel.imageState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val passwordState by viewModel.passwordState.collectAsState()
-    
+
     val snackbarHostState = remember { SnackbarHostState() }
     var showPasswordDialog by remember { mutableStateOf(false) }
-    
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { viewModel.uploadImage(context, it) }
-    }
 
-    LaunchedEffect(imageState) {
-        if (imageState is ProfileImageState.Success) {
-            snackbarHostState.showSnackbar("Imagen de perfil actualizada")
-            viewModel.resetImageState()
-        } else if (imageState is ProfileImageState.Error) {
-            snackbarHostState.showSnackbar((imageState as ProfileImageState.Error).message)
-            viewModel.resetImageState()
-        }
-    }
-
+    // Manejo de éxito: cerrar modal y mostrar mensaje
     LaunchedEffect(passwordState) {
         if (passwordState is ChangePasswordState.Success) {
             snackbarHostState.showSnackbar("Contraseña actualizada con éxito")
             viewModel.resetPasswordState()
             showPasswordDialog = false
-        } else if (passwordState is ChangePasswordState.Error) {
-            snackbarHostState.showSnackbar((passwordState as ChangePasswordState.Error).message)
-            viewModel.resetPasswordState()
         }
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(title = { Text("Mi Perfil") })
+            TopAppBar(title = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "Mi Perfil",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Gestiona la información de tu perfil",
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+            })
         }
     ) { innerPadding ->
         if (uiState.isLoading) {
@@ -87,52 +106,12 @@ fun ProfileScreen(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .clickable { launcher.launch("image/*") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (imageState is ProfileImageState.Loading) {
-                        CircularProgressIndicator()
-                    } else {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(70.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                .padding(6.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.PhotoCamera,
-                                contentDescription = "Cambiar imagen",
-                                modifier = Modifier.size(16.dp),
-                                tint = Color.White
-                            )
-                        }
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     text = uiState.fullName,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
-                )
-                
-                Text(
-                    text = uiState.role,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -143,10 +122,13 @@ fun ProfileScreen(
                     value = uiState.email
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 OutlinedButton(
-                    onClick = { showPasswordDialog = true },
+                    onClick = { 
+                        viewModel.resetPasswordState()
+                        showPasswordDialog = true 
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -175,9 +157,12 @@ fun ProfileScreen(
 
     if (showPasswordDialog) {
         ChangePasswordDialog(
-            onDismiss = { showPasswordDialog = false },
+            onDismiss = { 
+                viewModel.resetPasswordState()
+                showPasswordDialog = false 
+            },
             onConfirm = { current, new -> viewModel.changePassword(current, new) },
-            isLoading = passwordState is ChangePasswordState.Loading
+            passwordState = passwordState
         )
     }
 }
@@ -204,17 +189,36 @@ fun ProfileInfoItem(icon: ImageVector, label: String, value: String) {
 fun ChangePasswordDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit,
-    isLoading: Boolean
+    passwordState: ChangePasswordState
 ) {
     var currentPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    val isLoading = passwordState is ChangePasswordState.Loading
+    val serverError = (passwordState as? ChangePasswordState.Error)?.message
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Cambiar Contraseña") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (serverError != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = serverError,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(8.dp),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
                 OutlinedTextField(
                     value = currentPassword,
                     onValueChange = { currentPassword = it },

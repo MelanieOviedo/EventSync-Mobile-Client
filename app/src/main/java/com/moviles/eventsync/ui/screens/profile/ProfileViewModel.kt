@@ -1,25 +1,11 @@
 package com.moviles.eventsync.ui.screens.profile
 
-import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.moviles.eventsync.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.File
-import java.io.FileOutputStream
-
-sealed class ProfileImageState {
-    object Idle : ProfileImageState()
-    object Loading : ProfileImageState()
-    object Success : ProfileImageState()
-    data class Error(val message: String) : ProfileImageState()
-}
 
 data class ProfileUiState(
     val id: Int = 0,
@@ -38,9 +24,6 @@ sealed class ChangePasswordState {
 }
 
 class ProfileViewModel(private val repository: AuthRepository) : ViewModel() {
-
-    private val _imageState = MutableStateFlow<ProfileImageState>(ProfileImageState.Idle)
-    val imageState: StateFlow<ProfileImageState> = _imageState
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState
@@ -81,41 +64,6 @@ class ProfileViewModel(private val repository: AuthRepository) : ViewModel() {
                 _passwordState.value = ChangePasswordState.Error(error.message ?: "Error al cambiar contraseña")
             }
         }
-    }
-
-    fun uploadImage(context: Context, uri: Uri) {
-        viewModelScope.launch {
-            _imageState.value = ProfileImageState.Loading
-            
-            try {
-                val file = uriToFile(context, uri)
-                val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
-                val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
-                
-                val result = repository.uploadProfileImage(body)
-                result.onSuccess {
-                    _imageState.value = ProfileImageState.Success
-                }.onFailure { error ->
-                    _imageState.value = ProfileImageState.Error(error.message ?: "Error al subir imagen")
-                }
-            } catch (e: Exception) {
-                _imageState.value = ProfileImageState.Error("No se pudo procesar la imagen")
-            }
-        }
-    }
-
-    private fun uriToFile(context: Context, uri: Uri): File {
-        val inputStream = context.contentResolver.openInputStream(uri)
-        val file = File(context.cacheDir, "profile_upload.jpg")
-        val outputStream = FileOutputStream(file)
-        inputStream?.copyTo(outputStream)
-        inputStream?.close()
-        outputStream.close()
-        return file
-    }
-
-    fun resetImageState() {
-        _imageState.value = ProfileImageState.Idle
     }
 
     fun resetPasswordState() {

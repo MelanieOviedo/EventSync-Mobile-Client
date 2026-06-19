@@ -47,7 +47,7 @@ data class BookingResponse(
 )
 
 data class FcmTokenRequest(
-    @SerializedName("token") val token: String
+    @SerializedName("fcmToken") val token: String
 )
 
 data class NotificationResponse(

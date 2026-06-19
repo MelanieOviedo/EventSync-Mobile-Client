@@ -2,12 +2,14 @@ package com.moviles.eventsync.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.messaging.FirebaseMessaging
 import com.moviles.eventsync.data.TokenManager
 import com.moviles.eventsync.data.network.RegisterRequest
 import com.moviles.eventsync.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 sealed class RegisterState {
     object Idle : RegisterState()
@@ -36,6 +38,14 @@ class RegisterViewModel(
             result.onSuccess { response ->
                 if (response.token != null) {
                     tokenManager.saveToken(response.token)
+
+                    // Obtener y enviar el token de FCM tras el registro exitoso
+                    try {
+                        val fcmToken = FirebaseMessaging.getInstance().token.await()
+                        repository.updateFcmToken(fcmToken)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
                 _state.value = RegisterState.Success
             }.onFailure { error ->
